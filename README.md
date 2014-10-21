@@ -30,12 +30,13 @@ http://yangyangwithgnu.github.io/
 ----------------
 
 ####linux/osX
-1. 运行 goagent 代理程序
+运行 goagent 代理程序
 ```
 cd goagent_out_of_box_yang/
 python proxy.py
 ```
-2. 设置浏览器代理地址。firefox 可通过 edit - preferences - advanced - network - connection - settings 设置代理服务器地址为 127.0.0.1，端口为 8087，重启 firefox 即可生效。
+
+设置浏览器代理地址。firefox 可通过 edit - preferences - advanced - network - connection - settings 设置代理服务器地址为 127.0.0.1，端口为 8087，重启 firefox 即可生效。
 
 ####windows
 1. 首先，你得确保你是**管理员身份登录系统**。进入 computer - mangage - system tools - local users and groups - users，双击 administrator，**取消** general 选项卡下的 account is disabled。重启系统。
