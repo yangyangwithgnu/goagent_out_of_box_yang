@@ -1,4 +1,4 @@
-#开箱即用的 goagent 
+#开箱即用的 goagent v3.2.1
 yangyang.gnu@gmail.com  
 http://yangyangwithgnu.github.io/  
 2014-10-21 21:29:33   
@@ -13,13 +13,11 @@ http://yangyangwithgnu.github.io/
 ##缘由
 ----------------
 
-你知道，天朝在互联网上树了一堵墙 GFW，作为一个热爱折腾的新时代入党积极分子，墙外一切的一切无时无刻不在吸引着我，所以，翻墙是必须。就当前的技术实现来看，翻墙手段很多，开源的代理工具就有 PPTP-VPN、openVPN、SSH、shadowsocks、goagent 等。
+你知道，天朝在互联网上树了一堵墙 GFW，作为一个热爱折腾的新时代入党积极分子，墙外一切的一切无时无刻不在吸引着我，所以，翻墙是必须嘀。就当前的技术实现来看，翻墙手段很多，开源的代理工具有 PPTP-VPN、openVPN、SSH、shadowsocks、goagent 等。
 
-虽然，很多人都可以参照各类教程自己配置可用的代理，但是，仍然有很多很多人欠缺计算机基础操作能力，所以，我为动手能力相对较弱的朋友准备了一份开箱即用的 goagent。只要时间允许，我会尽可能同步至最新版的 goagent，让大家轻松愉悦的游离网络。
+虽然，小部分民众都可以参照各类教程自己配置可用的代理，但是，仍然有很多小白欠缺计算机基础操作能力，所以，我为动手能力相对较弱的朋友准备了一份开箱即用的 goagent。只要时间允许，我会尽可能同步至最新版的 goagent，让大家轻松愉悦的游离网络。
 
 如果，你有意愿自己配置一套 goagent，又或者，对其他各类代理工具感兴趣，可以参考《美丽新世界：linux 下的惬意生活》中“3.2 搭梯翻墙”章节（https://github.com/yangyangwithgnu/the_new_world_linux#3.2 ）。
-
-**当前版本 goagent v3.2.1**
 
 
 ##注意
@@ -36,7 +34,7 @@ http://yangyangwithgnu.github.io/
 ```
 cd goagent_out_of_box_yang/
 python proxy.py
-```
+```  
 2. 设置浏览器代理地址。firefox 可通过 edit - preferences - advanced - network - connection - settings 设置代理服务器地址为 127.0.0.1，端口为 8087，重启 firefox 即可生效。
 
 ####windows
