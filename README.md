@@ -1,4 +1,4 @@
-#开箱即用的 goagent v3.2.1
+#小白关爱版 goagent v3.2.1
 yangyang.gnu@gmail.com  
 http://yangyangwithgnu.github.io/  
 2014-10-21 21:29:33   
@@ -7,7 +7,7 @@ http://yangyangwithgnu.github.io/
 ##公告
 ----------------
 
-**捐赠：如果觉得 hardseed 有用，可以考虑捐赠点碎银，支付宝 yangyang.gnu@gmail.com ，不好意思，$_$**
+**捐赠：如果觉得小白关爱版 goagent 有用，可以考虑捐赠点碎银，支付宝 yangyang.gnu@gmail.com ，不好意思，$_$**
 
 
 ##缘由
