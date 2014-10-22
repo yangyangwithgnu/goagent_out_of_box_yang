@@ -43,3 +43,5 @@ python proxy.py
 2. 然后，赋予 goagent.exe 管理员权限。具体请右键 goagent.exe，选中 properties - compatibility - privilege level - run this program as an admin。
 3. 接着，双击 goagent.exe 运行。
 4. 最后，设置浏览器代理地址。firefox 可通过 edit - preferences - advanced - network - connection - settings 设置代理服务器地址为 127.0.0.1，端口为 8087，重启 firefox 即可生效。IE 可通过 tools - internet options - connections - LAN settings，勾选 use a proxy server for your LAN，add 填入 127.0.0.1，port 填入 8087，重启 IE 即可。
+
+可访问 http://www.ip38.com/ 查看“来自”信息确认代理是否生效，通常情况应显示“美国谷歌公司云数据中心”。
