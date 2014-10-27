@@ -6,8 +6,9 @@ http://yangyangwithgnu.github.io/
 
 ##公告
 ----------------
+https://shenghuo.alipay.com/send/payment/fill.htm?optEmail=yangyang.gnu@gmail.com
 
-**捐赠：如果觉得小白关爱版 goagent 有用，可以捐赠点碎银，支付宝 yangyang.gnu@gmail.com ，不好意思，$_$**
+* <font color=red>**捐赠：如果觉得本文还不错，捐点碎银，支付宝 yangyang.gnu@gmail.com （https://shenghuo.alipay.com/send/payment/fill.htm ），给多了我跟你急 $\_$**</font>
 
 
 ##缘由
