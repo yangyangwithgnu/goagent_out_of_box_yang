@@ -1,4 +1,4 @@
-#小白关爱版 goagent v3.2.1
+#全民翻墙：小白关爱版 goagent v3.2.1
 yangyang.gnu@gmail.com  
 http://yangyangwithgnu.github.io/  
 2014-10-21 21:29:33   
@@ -15,7 +15,7 @@ http://yangyangwithgnu.github.io/
 ##缘由
 ----------------
 
-你知道，天朝在互联网上树了一堵墙 GFW，作为一个热爱折腾的新时代入党积极分子，墙外一切的一切无时无刻不在吸引着我，所以，翻墙是必须嘀。当前的开源翻墙工具很多，全局翻墙的 PPTP-VPN 和 openVPN、socks 翻墙的 SSH 和 shadowsocks、HTTP 翻墙的 goagent，对于哪些原本不支持代理功能的软件可以用 proxychains 透明代理后具备代理功能，一旦具备翻墙能力后，你甚至可以用 tor 指定任意国家或地区作为出口 IP。
+你知道，天朝在互联网上树了一堵墙 GFW，作为一个热爱折腾的新时代入党积极分子，墙外一切的一切无时无刻不在吸引着我，所以，翻墙是必须嘀。当前的开源翻墙工具很多，全局翻墙的 PPTP-VPN 和 openVPN、socks 翻墙的 SSH 和 shadowsocks、HTTP 翻墙的 goagent，对于那些原本不支持代理功能的软件可以用 proxychains 透明代理后具备代理功能，一旦具备翻墙能力后，你甚至可以用 tor 指定任意国家或地区作为出口 IP。
 
 虽然，小部分民众都可以参照各类教程自己配置可用的代理，但是，仍然有大部分小白欠缺计算机基础操作能力，所以，我为动手能力相对较弱的朋友准备了一份开箱即用的 goagent。只要时间允许，我会尽可能同步至最新版的 goagent，让大家轻松愉悦的游离网络。
 
