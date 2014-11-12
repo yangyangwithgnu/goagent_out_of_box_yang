@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding:utf-8
 
-__version__ = '1.0'
+__version__ = '1.1'
 
 import sys
 import os
@@ -153,26 +153,23 @@ class CertUtil(object):
     def create_ca():
         key = OpenSSL.crypto.PKey()
         key.generate_key(OpenSSL.crypto.TYPE_RSA, 2048)
-        ca = OpenSSL.crypto.X509()
-        ca.set_serial_number(0)
-        ca.set_version(0)
-        subj = ca.get_subject()
+        req = OpenSSL.crypto.X509Req()
+        subj = req.get_subject()
         subj.countryName = 'CN'
         subj.stateOrProvinceName = 'Internet'
         subj.localityName = 'Cernet'
         subj.organizationName = CertUtil.ca_vendor
         subj.organizationalUnitName = '%s Root' % CertUtil.ca_vendor
         subj.commonName = '%s CA' % CertUtil.ca_vendor
+        req.set_pubkey(key)
+        req.sign(key, 'sha1')
+        ca = OpenSSL.crypto.X509()
+        ca.set_serial_number(0)
         ca.gmtime_adj_notBefore(0)
         ca.gmtime_adj_notAfter(24 * 60 * 60 * 3652)
-        ca.set_issuer(ca.get_subject())
-        ca.set_pubkey(key)
-        ca.add_extensions([
-            OpenSSL.crypto.X509Extension(b'basicConstraints', True, b'CA:TRUE'),
-            # OpenSSL.crypto.X509Extension(b'nsCertType', True, b'sslCA'),
-            OpenSSL.crypto.X509Extension(b'extendedKeyUsage', True, b'serverAuth,clientAuth,emailProtection,timeStamping,msCodeInd,msCodeCom,msCTLSign,msSGC,msEFS,nsSGC'),
-            OpenSSL.crypto.X509Extension(b'keyUsage', False, b'keyCertSign, cRLSign'),
-            OpenSSL.crypto.X509Extension(b'subjectKeyIdentifier', False, b'hash', subject=ca), ])
+        ca.set_issuer(req.get_subject())
+        ca.set_subject(req.get_subject())
+        ca.set_pubkey(req.get_pubkey())
         ca.sign(key, 'sha1')
         return key, ca
 
@@ -337,7 +334,10 @@ class CertUtil(object):
             if os.path.exists(certdir):
                 any(os.remove(x) for x in glob.glob(certdir+'/*.crt')+glob.glob(certdir+'/.*.crt'))
             if os.name == 'nt':
-                CertUtil.remove_ca('%s CA' % CertUtil.ca_vendor)
+                try:
+                    CertUtil.remove_ca('%s CA' % CertUtil.ca_vendor)
+                except Exception as e:
+                    logging.warning('CertUtil.remove_ca failed: %r', e)
             CertUtil.dump_ca()
         with open(capath, 'rb') as fp:
             CertUtil.ca_thumbprint = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM, fp.read()).digest('sha1')
@@ -741,6 +741,11 @@ def extract_sni_name(packet):
             if etype == 0:
                 server_name = edata[5:]
                 return server_name
+
+def random_hostname():
+    word = ''.join(random.choice(('bcdfghjklmnpqrstvwxyz', 'aeiou')[x&1]) for x in xrange(random.randint(5, 10)))
+    gltd = random.choice(['org', 'com', 'net', 'gov', 'cn'])
+    return 'www.%s.%s' % (word, gltd)
 
 
 def get_uptime():
@@ -1162,15 +1167,16 @@ class DirectRegionFilter(BaseProxyHandlerFilter):
         except KeyError:
             pass
         try:
-            if hostname.startswith(('127.', '192.168.', '10.')):
-                return 'LOCAL'
             if re.match(r'^\d+\.\d+\.\d+\.\d+$', hostname) or ':' in hostname:
                 iplist = [hostname]
             elif dnsservers:
                 iplist = dnslib_record2iplist(dnslib_resolve_over_udp(hostname, dnsservers, timeout=2))
             else:
                 iplist = socket.gethostbyname_ex(hostname)[-1]
-            country_code = self.geoip.country_code_by_addr(iplist[0])
+            if iplist[0].startswith(('127.', '192.168.', '10.')):
+                country_code = 'LOCAL'
+            else:
+                country_code = self.geoip.country_code_by_addr(iplist[0])
         except StandardError as e:
             logging.warning('DirectRegionFilter cannot determine region for hostname=%r %r', hostname, e)
             country_code = ''
@@ -1393,6 +1399,8 @@ class StaticFileFilter(BaseProxyHandlerFilter):
                 try:
                     import mimetypes
                     content_type = mimetypes.types_map.get(os.path.splitext(path)[1])
+                    if os.path.splitext(path)[1].endswith(('crt', 'pem')):
+                        content_type = 'application/x-x509-ca-cert'
                 except StandardError as e:
                     logging.error('import mimetypes failed: %r', e)
                 with open(path, 'rb') as fp:
@@ -1577,7 +1585,7 @@ class MultipleConnectionMixin(object):
     ssl_connection_keepalive = False
     iplist_predefined = set([])
     max_window = 4
-    connect_timeout = 4
+    connect_timeout = 6
     max_timeout = 8
     ssl_version = ssl.PROTOCOL_SSLv23
     openssl_context = OpenSSL.SSL.Context(OpenSSL.SSL.SSLv23_METHOD)
@@ -1691,7 +1699,7 @@ class MultipleConnectionMixin(object):
         try:
             while cache_key:
                 ctime, sock = self.tcp_connection_cache[cache_key].get_nowait()
-                if time.time() - ctime < 8:
+                if time.time() - ctime < self.connect_timeout:
                     return sock
                 else:
                     sock.close()
@@ -1827,10 +1835,10 @@ class MultipleConnectionMixin(object):
             ssl_sock = None
             timer = None
             NetworkError = (socket.error, OpenSSL.SSL.Error, OSError)
-            if gevent:
+            if gevent and (ipaddr[0] not in self.iplist_predefined):
                 NetworkError += (gevent.Timeout,)
-                timer = gevent.Timeout(timeout)
-                timer.start()
+                #timer = gevent.Timeout(timeout)
+                #timer.start()
             try:
                 # create a ipv4/ipv6 socket object
                 sock = socket.socket(socket.AF_INET if ':' not in ipaddr[0] else socket.AF_INET6)
@@ -1845,7 +1853,7 @@ class MultipleConnectionMixin(object):
                 # set a short timeout to trigger timeout retry more quickly.
                 sock.settimeout(timeout or self.connect_timeout)
                 # pick up the certificate
-                server_hostname = b'www.googleapis.com' if (cache_key or '').startswith('google_') or hostname.endswith('.appspot.com') else None
+                server_hostname = random_hostname() if (cache_key or '').startswith('google_') or hostname.endswith('.appspot.com') else None
                 ssl_sock = SSLConnection(self.openssl_context, sock)
                 ssl_sock.set_connect_state()
                 if server_hostname and hasattr(ssl_sock, 'set_tlsext_host_name'):
@@ -1943,7 +1951,7 @@ class MultipleConnectionMixin(object):
         try:
             while cache_key:
                 ctime, sock = self.ssl_connection_cache[cache_key].get_nowait()
-                if time.time() - ctime < 4:
+                if time.time() - ctime < self.connect_timeout:
                     return sock
                 else:
                     sock.close()
@@ -1954,22 +1962,19 @@ class MultipleConnectionMixin(object):
         sock = None
         for i in range(kwargs.get('max_retry', 4)):
             reorg_ipaddrs()
-            window = self.max_window + i
-            if len(self.ssl_connection_good_ipaddrs) > len(self.ssl_connection_bad_ipaddrs):
-                window = max(2, window-2)
-            if len(self.ssl_connection_bad_ipaddrs)/2 >= len(self.ssl_connection_good_ipaddrs) <= 1.5 * window:
-                window += 2
-            good_ipaddrs = [x for x in addresses if x in self.ssl_connection_good_ipaddrs]
-            good_ipaddrs = sorted(good_ipaddrs, key=self.ssl_connection_time.get)[:window]
+            good_ipaddrs = sorted([x for x in addresses if x in self.ssl_connection_good_ipaddrs], key=self.ssl_connection_time.get)
+            bad_ipaddrs = sorted([x for x in addresses if x in self.ssl_connection_bad_ipaddrs], key=self.ssl_connection_bad_ipaddrs.get)
             unknown_ipaddrs = [x for x in addresses if x not in self.ssl_connection_good_ipaddrs and x not in self.ssl_connection_bad_ipaddrs]
             random.shuffle(unknown_ipaddrs)
-            unknown_ipaddrs = unknown_ipaddrs[:window]
-            bad_ipaddrs = [x for x in addresses if x in self.ssl_connection_bad_ipaddrs]
-            bad_ipaddrs = sorted(bad_ipaddrs, key=self.ssl_connection_bad_ipaddrs.get)[:window]
-            addrs = good_ipaddrs + unknown_ipaddrs + bad_ipaddrs
-            remain_window = 3 * window - len(addrs)
-            if 0 < remain_window <= len(addresses):
-                addrs += random.sample(addresses, remain_window)
+            window = self.max_window + i
+            if len(bad_ipaddrs) < 0.2 * len(good_ipaddrs) and len(good_ipaddrs) > 10:
+                addrs = good_ipaddrs[:window]
+                addrs += [random.choice(unknown_ipaddrs)] if unknown_ipaddrs else []
+            elif len(good_ipaddrs) > 2 * window or len(bad_ipaddrs) < 0.5 * len(good_ipaddrs):
+                addrs = (good_ipaddrs[:window] + unknown_ipaddrs + bad_ipaddrs)[:2*window]
+            else:
+                addrs = good_ipaddrs[:window] + unknown_ipaddrs[:window] + bad_ipaddrs[:window]
+                addrs += random.sample(addresses, min(len(addresses), 3*window-len(addrs))) if len(addrs) < 3*window else []
             logging.debug('%s good_ipaddrs=%d, unknown_ipaddrs=%r, bad_ipaddrs=%r', cache_key, len(good_ipaddrs), len(unknown_ipaddrs), len(bad_ipaddrs))
             queobj = Queue.Queue()
             for addr in addrs:

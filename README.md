@@ -1,7 +1,7 @@
-#全民翻墙：小白关爱版 goagent v3.2.1
+#全民翻墙：小白关爱版 goagent v3.2.2
 yangyang.gnu@gmail.com  
 http://yangyangwithgnu.github.io/  
-2014-10-21 21:29:33   
+2014-11-12 23:47:50   
 
 
 ##公告
@@ -10,6 +10,11 @@ http://yangyangwithgnu.github.io/
 <div align="center">
 <img src="https://raw.githubusercontent.com/yangyangwithgnu/yangyangwithgnu.github.io/master/pics/donate_qr.png" alt=""/><br>
 </div>
+
+
+##版本
+----------------
+更新至最新 v3.2.2，需客户端重新导入证书。
 
 
 ##缘由
@@ -37,12 +42,16 @@ http://yangyangwithgnu.github.io/
 python goagent_out_of_box_yang/proxy.py
 ```
 
-设置浏览器代理地址。firefox 可通过 edit - preferences - advanced - network - connection - settings 设置代理服务器地址为 127.0.0.1，端口为 8087，重启 firefox 即可生效。
+设置浏览器代理地址。firefox 可通过 edit - preferences - advanced - network - connection - settings 设置代理服务器地址为 127.0.0.1，端口为 8087，重启 firefox 生效。
+
+浏览器中导入证书。firefox 可通过 edit - preferences - advanced - encryption - view certificates - authorities - import，选择证书 goagent_out_of_box_yang
+/CA.crt，在确认对话框中勾选 websites、email users、software developers 等三类信任，重启 firefox 生效。
 
 ####windows
-1. 首先，你得确保你是**管理员身份登录系统**。进入 computer - mangage - system tools - local users and groups - users，双击 administrator，**取消** general 选项卡下的 account is disabled。重启系统。
-2. 然后，赋予 goagent.exe 管理员权限。具体请右键 goagent.exe，选中 properties - compatibility - privilege level - run this program as an admin。
-3. 接着，双击 goagent.exe 运行。
-4. 最后，设置浏览器代理地址。firefox 可通过 edit - preferences - advanced - network - connection - settings 设置代理服务器地址为 127.0.0.1，端口为 8087，重启 firefox 即可生效。IE 可通过 tools - internet options - connections - LAN settings，勾选 use a proxy server for your LAN，add 填入 127.0.0.1，port 填入 8087，重启 IE 即可。
+1. 你得确保你是**管理员身份登录系统**。进入 computer - mangage - system tools - local users and groups - users，双击 administrator，**取消** general 选项卡下的 account is disabled。重启系统；
+2. 赋予 goagent.exe 管理员权限。具体请右键 goagent.exe，选中 properties - compatibility - privilege level - run this program as an admin；
+3. 双击 goagent.exe 运行；
+4. 设置浏览器代理地址。firefox 可通过 edit - preferences - advanced - network - connection - settings 设置代理服务器地址为 127.0.0.1，端口为 8087，重启 firefox 即可生效。IE 可通过 tools - internet options - connections - LAN settings，勾选 use a proxy server for your LAN，add 填入 127.0.0.1，port 填入 8087，重启 IE 即可；
+5. 浏览器中导入证书。firefox 可通过 edit - preferences - advanced - encryption - view certificates - authorities - import，选择证书 goagent_out_of_box_yang/CA.crt，在确认对话框中勾选 websites、email users、software developers 等三类信任，重启 firefox 生效。IE 可通过 tools - internet options - content - certificates 进行证书 goagent_out_of_box_yang/CA.crt 的选择。
 
 可访问 http://www.ip38.com/ 查看“来自”信息确认代理是否生效，通常情况应显示“美国谷歌公司云数据中心”。

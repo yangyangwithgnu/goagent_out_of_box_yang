@@ -45,7 +45,7 @@
 #      Hubertzhang       <hubert.zyk@gmail.com>
 #      arrix             <arrixzhou@gmail.com>
 
-__version__ = '3.2.0'
+__version__ = '3.2.2'
 
 import os
 import sys
@@ -820,12 +820,21 @@ class PacUtil(object):
     """GoAgent Pac Util"""
 
     @staticmethod
+    def urlread(url, proxy_address):
+        try:
+            conn = httplib.HTTPConnection(proxy_address)
+            conn.request('GET', url)
+            response = conn.getresponse()
+            return response.read()
+        finally:
+            conn.close()
+
+    @staticmethod
     def update_pacfile(filename):
         listen_ip = '127.0.0.1'
         autoproxy = '%s:%s' % (listen_ip, common.LISTEN_PORT)
         blackhole = '%s:%s' % (listen_ip, common.PAC_PORT)
         default = 'PROXY %s:%s' % (common.PROXY_HOST, common.PROXY_PORT) if common.PROXY_ENABLE else 'DIRECT'
-        opener = urllib2.build_opener(urllib2.ProxyHandler({'http': autoproxy, 'https': autoproxy}))
         content = ''
         need_update = True
         with open(filename, 'rb') as fp:
@@ -846,7 +855,7 @@ class PacUtil(object):
             if common.PAC_ADBLOCK:
                 admode = common.PAC_ADMODE
                 logging.info('try download %r to update_pacfile(%r)', common.PAC_ADBLOCK, filename)
-                adblock_content = opener.open(common.PAC_ADBLOCK).read()
+                adblock_content = PacUtil.urlread(common.PAC_ADBLOCK, autoproxy)
                 logging.info('%r downloaded, try convert it with adblock2pac', common.PAC_ADBLOCK)
                 if 'gevent' in sys.modules and time.sleep is getattr(sys.modules['gevent'], 'sleep', None) and hasattr(gevent.get_hub(), 'threadpool'):
                     jsrule = gevent.get_hub().threadpool.apply_e(Exception, PacUtil.adblock2pac, (adblock_content, 'FindProxyForURLByAdblock', blackhole, default, admode))
@@ -870,7 +879,7 @@ class PacUtil(object):
                     except IOError as e:
                         logging.warning('PacUtil load %r failed: %r', url, e)
                 else:
-                    url_content = opener.open(url).read()
+                    url_content = PacUtil.urlread(url, autoproxy)
                     if not any(x in url_content for x in '!-@|'):
                         url_content = base64.b64decode(url_content)
                     autoproxy_content_list.append(url_content)
