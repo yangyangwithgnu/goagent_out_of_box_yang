@@ -1,7 +1,7 @@
-#全民翻墙：小白关爱版 goagent v3.2.2
+#全民翻墙：小白关爱版 goagent v3.2.3
 yangyang.gnu@gmail.com  
 http://yangyangwithgnu.github.io/  
-2014-11-12 23:47:50   
+2014-12-4 13:06:35   
 
 
 ##公告
@@ -14,7 +14,7 @@ http://yangyangwithgnu.github.io/
 
 ##版本
 ----------------
-更新至最新 v3.2.2，需客户端重新导入证书。
+更新至最新 v3.2.3，需客户端重新导入证书；GAE 不再支持 pagespeed，删除 proxy.ini 中的 pagespeed 选项；PAC 存在漏洞，假定某运行 goagent 的客户端 IP 为 123.2.2.11，那么可以通过 http://123.2.2.11:8086/%2f..%2f..%2f..%2f..%2f..%2f..%2f..%2f..%2f..%2f..%2f/ 访问该客户端上任意文件，禁用 PAC 以封堵该漏洞
 
 
 ##缘由

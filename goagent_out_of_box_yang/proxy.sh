@@ -30,7 +30,7 @@ start() {
 
 stop() {
     echo -n "Stopping ${PACKAGE_DESC}: "
-    kill -9 `ps aux | grep 'python2.7 proxy.py' | grep -v grep | awk '{print $2}'` || true
+    kill -9 `ps aux | grep 'python2.7 proxy.py' | grep -v grep | awk '{print $2}'` >/dev/null 2>&1 || true
     echo "${PACKAGE_NAME}."
 }
 

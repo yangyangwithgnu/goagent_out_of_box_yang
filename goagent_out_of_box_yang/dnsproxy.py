@@ -124,6 +124,7 @@ def dnslib_resolve_over_udp(query, dnsservers, timeout, **kwargs):
     http://gfwrev.blogspot.com/2009/11/gfwdns.html
     http://zh.wikipedia.org/wiki/%E5%9F%9F%E5%90%8D%E6%9C%8D%E5%8A%A1%E5%99%A8%E7%BC%93%E5%AD%98%E6%B1%A1%E6%9F%93
     http://support.microsoft.com/kb/241352
+    https://gist.github.com/klzgrad/f124065c0616022b65e5
     """
     if not isinstance(query, (basestring, dnslib.DNSRecord)):
         raise TypeError('query argument requires string/DNSRecord')
@@ -145,8 +146,12 @@ def dnslib_resolve_over_udp(query, dnsservers, timeout, **kwargs):
             try:
                 for dnsserver in dns_v4_servers:
                     if isinstance(query, basestring):
+                        if dnsserver in ('8.8.8.8', '8.8.4.4'):
+                            query = '.'.join(x[:-1] + x[-1].upper() for x in query.split('.')).title()
                         query = dnslib.DNSRecord(q=dnslib.DNSQuestion(query))
                     query_data = query.pack()
+                    if query.q.qtype == 1 and dnsserver in ('8.8.8.8', '8.8.4.4'):
+                        query_data = query_data[:-5] + '\xc0\x04' + query_data[-4:]
                     sock_v4.sendto(query_data, parse_hostport(dnsserver, 53))
                 for dnsserver in dns_v6_servers:
                     if isinstance(query, basestring):
