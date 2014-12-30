@@ -429,7 +429,7 @@ class GAEFetchPlugin(BaseFetchPlugin):
                         if len(self.appids) > 1:
                             self.appids.append(self.appids.pop(0))
                             logging.info('gae over qouta, switch next appid=%r', self.appids[0])
-                    if i < self.max_retry - 1 and len(self.appids) > 1:
+                    elif i < self.max_retry - 1 and len(self.appids) > 1:
                         self.appids.append(self.appids.pop(0))
                         logging.info('URLFETCH return %d, trying next appid=%r', response.app_status, self.appids[0])
                     response.close()
@@ -1462,7 +1462,7 @@ class Common(object):
             logging.warning('google_cn resolved too short iplist=%s, switch to google_hk', self.IPLIST_ALIAS.get('google_cn', []))
             self.IPLIST_ALIAS['google_cn'] = self.IPLIST_ALIAS['google_hk']
 
-    def info(self):
+    def summary(self):
         info = ''
         info += '------------------------------------------------------\n'
         info += 'GoAgent Version    : %s (python/%s gevent/%s pyopenssl/%s)\n' % (__version__, sys.version[:5], gevent.__version__, OpenSSL.__version__)
@@ -1470,7 +1470,7 @@ class Common(object):
         info += 'Listen Address     : %s:%d\n' % (self.LISTEN_IP, self.LISTEN_PORT)
         info += 'Local Proxy        : %s:%s\n' % (self.PROXY_HOST, self.PROXY_PORT) if self.PROXY_ENABLE else ''
         info += 'Debug INFO         : %s\n' % self.LISTEN_DEBUGINFO if self.LISTEN_DEBUGINFO else ''
-        info += 'GAE Mode           : %s\n' % self.GAE_MODE
+        info += 'GAE Mode           : %s\n' % ('%s (%s)' % (self.GAE_MODE, self.GAE_SSLVERSION) if common.GAE_MODE == 'https' else self.GAE_MODE)
         info += 'GAE IPv6           : %s\n' % self.GAE_IPV6 if self.GAE_IPV6 else ''
         info += 'GAE APPID          : %s\n' % '|'.join(self.GAE_APPIDS)
         info += 'GAE Validate       : %s\n' % self.GAE_VALIDATE if self.GAE_VALIDATE else ''
@@ -1584,7 +1584,7 @@ def main():
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     logging.basicConfig(level=logging.DEBUG if common.LISTEN_DEBUGINFO else logging.INFO, format='%(levelname)s - %(asctime)s %(message)s', datefmt='[%b %d %H:%M:%S]')
     pre_start()
-    sys.stderr.write(common.info())
+    sys.stderr.write(common.summary())
 
     if common.PAC_ENABLE:
         thread.start_new_thread(LocalProxyServer((common.PAC_IP, common.PAC_PORT), PACProxyHandler).serve_forever, tuple())

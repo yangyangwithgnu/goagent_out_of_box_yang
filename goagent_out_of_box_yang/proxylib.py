@@ -40,6 +40,33 @@ import dnslib
 gevent = sys.modules.get('gevent') or logging.warn('please enable gevent.')
 
 
+# Re-add sslwrap to Python 2.7.9
+import inspect
+__ssl__ = __import__('ssl')
+
+try:
+    _ssl = __ssl__._ssl
+except AttributeError:
+    _ssl = __ssl__._ssl2
+
+
+def new_sslwrap(sock, server_side=False, keyfile=None, certfile=None, cert_reqs=__ssl__.CERT_NONE, ssl_version=__ssl__.PROTOCOL_SSLv23, ca_certs=None, ciphers=None):
+    context = __ssl__.SSLContext(ssl_version)
+    context.verify_mode = cert_reqs or __ssl__.CERT_NONE
+    if ca_certs:
+        context.load_verify_locations(ca_certs)
+    if certfile:
+        context.load_cert_chain(certfile, keyfile)
+    if ciphers:
+        context.set_ciphers(ciphers)
+
+    caller_self = inspect.currentframe().f_back.f_locals['self']
+    return context._wrap_socket(sock, server_side=server_side, ssl_sock=caller_self)
+
+if not hasattr(_ssl, 'sslwrap'):
+    _ssl.sslwrap = new_sslwrap
+
+
 try:
     from Crypto.Cipher.ARC4 import new as RC4Cipher
 except ImportError:
@@ -1356,6 +1383,7 @@ class AutoRangeFilter(BaseProxyHandlerFilter):
 class StaticFileFilter(BaseProxyHandlerFilter):
     """static file filter"""
     index_file = 'index.html'
+    allow_exts = ['.crt', '.pac', '.crx', '.bak', '.htm', '.html', '.js', '.css', '.png', '.gif', '.jpg']
 
     def format_index_html(self, dirname):
         INDEX_TEMPLATE = u'''
@@ -1374,6 +1402,8 @@ class StaticFileFilter(BaseProxyHandlerFilter):
         if not isinstance(dirname, unicode):
             dirname = dirname.decode(sys.getfilesystemencoding())
         for name in os.listdir(dirname):
+            if os.path.splitext(name)[1] not in self.allow_exts:
+                continue
             fullname = os.path.join(dirname, name)
             suffix = u'/' if os.path.isdir(fullname) else u''
             html += u'<li><a href="%s%s">%s%s</a>\r\n' % (name, suffix, name, suffix)
@@ -1383,6 +1413,7 @@ class StaticFileFilter(BaseProxyHandlerFilter):
         path = urlparse.urlsplit(handler.path).path
         if path.startswith('/'):
             path = urllib.unquote_plus(path.lstrip('/') or '.').decode('utf8')
+            path = '/'.join(x for x in path.split('/') if x != '..')
             if os.path.isdir(path):
                 index_file = os.path.join(path, self.index_file)
                 if not os.path.isfile(index_file):
@@ -1392,6 +1423,8 @@ class StaticFileFilter(BaseProxyHandlerFilter):
                 else:
                     path = index_file
             if os.path.isfile(path):
+                if os.path.splitext(path)[1] not in self.allow_exts:
+                    return 'mock', {'status': 403, 'body': '403 Fobidon'}
                 content_type = 'application/octet-stream'
                 try:
                     import mimetypes
@@ -1808,6 +1841,8 @@ class AdvancedNet2(Net2):
                 # reset a large and random timeout to the ipaddr
                 self.ssl_connection_time[ipaddr] = self.connect_timeout + random.random()
                 # add to bad ipaddrs dict
+                if ipaddr[0] in self.fixed_iplist:
+                    logging.warn('bad IP: %s (%r)', ipaddr, e)
                 if ipaddr not in self.ssl_connection_bad_ipaddrs:
                     self.ssl_connection_bad_ipaddrs[ipaddr] = time.time()
                 # remove from good/unknown ipaddrs dict
@@ -1896,6 +1931,8 @@ class AdvancedNet2(Net2):
                 # reset a large and random timeout to the ipaddr
                 self.ssl_connection_time[ipaddr] = self.connect_timeout + random.random()
                 # add to bad ipaddrs dict
+                if ipaddr[0] in self.fixed_iplist:
+                    logging.warn('bad IP: %s (%r)', ipaddr, e)
                 if ipaddr not in self.ssl_connection_bad_ipaddrs:
                     self.ssl_connection_bad_ipaddrs[ipaddr] = time.time()
                 # remove from good/unknown ipaddrs dict
