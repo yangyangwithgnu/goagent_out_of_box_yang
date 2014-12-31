@@ -1,12 +1,12 @@
 #全民翻墙：小白关爱版 goagent v3.2.3
-yangyang.gnu@gmail.com  
+yangyangwithgnu@yeah.net  
 http://yangyangwithgnu.github.io/  
 2014-12-4 13:06:35   
 
 
 ##公告
 ----------------
-* **捐赠：支付宝 yangyang.gnu@gmail.com 。支付宝链接 https://shenghuo.alipay.com/send/payment/fill.htm?optEmail=yangyang.gnu@gmail.com ，支付宝二维码 $_$**
+* **捐赠：支付宝 yangyangwithgnu@yeah.net 。支付宝链接 https://shenghuo.alipay.com/send/payment/fill.htm?optEmail=yangyangwithgnu@yeah.net ，支付宝二维码 $_$**
 <div align="center">
 <img src="https://raw.githubusercontent.com/yangyangwithgnu/yangyangwithgnu.github.io/master/pics/donate_qr.png" alt=""/><br>
 </div>
