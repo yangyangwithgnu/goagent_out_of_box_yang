@@ -72,7 +72,7 @@ if [ "$(id -u)" != "0" ]; then
 fi
 
 # `readlink -f` won't work on Mac, this hack should work on all systems.
-cd $(python -c "import os; print os.path.dirname(os.path.realpath('$0'))")
+cd $(python -c "import os; print(os.path.dirname(os.path.realpath('$0')))")
 
 case "$1" in
     start)

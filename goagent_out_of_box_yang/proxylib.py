@@ -128,6 +128,24 @@ class CipherFileObject(object):
         return self.__cipher.encrypt(self.__fileobj.read(size))
 
 
+class CipherSocket(object):
+    """socket wrapper for cipher"""
+    def __init__(self, sock, cipher):
+        self.__sock = fileobj
+        self.__cipher = cipher
+
+    def __getattr__(self, attr):
+        if attr not in ('__sock', '__cipher'):
+            return getattr(self.__sock, attr)
+
+    def recv(self, size):
+        data = self.__sock.recv(size)
+        return data and self.__cipher.encrypt(data)
+
+    def send(self, data, flags=0):
+        return data and self.__sock.send(self.__cipher.encrypt(data), flags)
+
+
 class LRUCache(object):
     """http://pypi.python.org/pypi/lru/"""
 
@@ -167,18 +185,18 @@ class LRUCache(object):
         self.key_order = []
 
 
-class CertUtil(object):
-    """CertUtil module, based on mitmproxy"""
+class CertUtility(object):
+    """Cert Utility module, based on mitmproxy"""
 
-    ca_vendor = 'GoAgent'
-    ca_keyfile = 'CA.crt'
-    ca_thumbprint = ''
-    ca_certdir = 'certs'
-    ca_digest = 'sha1' if sys.platform == 'win32' and sys.getwindowsversion() < (6,) else 'sha256'
-    ca_lock = threading.Lock()
+    def __init__(self, vendor, filename, dirname):
+        self.ca_vendor = vendor
+        self.ca_keyfile = filename
+        self.ca_thumbprint = ''
+        self.ca_certdir = dirname
+        self.ca_digest = 'sha256'
+        self.ca_lock = threading.Lock()
 
-    @staticmethod
-    def create_ca():
+    def create_ca(self):
         key = OpenSSL.crypto.PKey()
         key.generate_key(OpenSSL.crypto.TYPE_RSA, 2048)
         req = OpenSSL.crypto.X509Req()
@@ -186,11 +204,11 @@ class CertUtil(object):
         subj.countryName = 'CN'
         subj.stateOrProvinceName = 'Internet'
         subj.localityName = 'Cernet'
-        subj.organizationName = CertUtil.ca_vendor
-        subj.organizationalUnitName = '%s Root' % CertUtil.ca_vendor
-        subj.commonName = '%s CA' % CertUtil.ca_vendor
+        subj.organizationName = self.ca_vendor
+        subj.organizationalUnitName = self.ca_vendor
+        subj.commonName = self.ca_vendor
         req.set_pubkey(key)
-        req.sign(key, CertUtil.ca_digest)
+        req.sign(key, self.ca_digest)
         ca = OpenSSL.crypto.X509()
         ca.set_serial_number(0)
         ca.gmtime_adj_notBefore(0)
@@ -198,25 +216,22 @@ class CertUtil(object):
         ca.set_issuer(req.get_subject())
         ca.set_subject(req.get_subject())
         ca.set_pubkey(req.get_pubkey())
-        ca.sign(key, 'sha1')
+        ca.sign(key, self.ca_digest)
         return key, ca
 
-    @staticmethod
-    def dump_ca():
-        key, ca = CertUtil.create_ca()
-        with open(CertUtil.ca_keyfile, 'wb') as fp:
+    def dump_ca(self):
+        key, ca = self.create_ca()
+        with open(self.ca_keyfile, 'wb') as fp:
             fp.write(OpenSSL.crypto.dump_certificate(OpenSSL.crypto.FILETYPE_PEM, ca))
             fp.write(OpenSSL.crypto.dump_privatekey(OpenSSL.crypto.FILETYPE_PEM, key))
 
-    @staticmethod
-    def get_cert_serial_number(commonname):
-        assert CertUtil.ca_thumbprint
-        saltname = '%s|%s' % (CertUtil.ca_thumbprint, commonname)
+    def get_cert_serial_number(self, commonname):
+        assert self.ca_thumbprint
+        saltname = '%s|%s' % (self.ca_thumbprint, commonname)
         return int(hashlib.md5(saltname.encode('utf-8')).hexdigest(), 16)
 
-    @staticmethod
-    def _get_cert(commonname, sans=()):
-        with open(CertUtil.ca_keyfile, 'rb') as fp:
+    def _get_cert(self, commonname, sans=()):
+        with open(self.ca_keyfile, 'rb') as fp:
             content = fp.read()
             key = OpenSSL.crypto.load_privatekey(OpenSSL.crypto.FILETYPE_PEM, content)
             ca = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM, content)
@@ -229,7 +244,7 @@ class CertUtil(object):
         subj.countryName = 'CN'
         subj.stateOrProvinceName = 'Internet'
         subj.localityName = 'Cernet'
-        subj.organizationalUnitName = '%s Branch' % CertUtil.ca_vendor
+        subj.organizationalUnitName = self.ca_vendor
         if commonname[0] == '.':
             subj.commonName = '*' + commonname
             subj.organizationName = '*' + commonname
@@ -240,12 +255,12 @@ class CertUtil(object):
             sans = [commonname] + [x for x in sans if x != commonname]
         #req.add_extensions([OpenSSL.crypto.X509Extension(b'subjectAltName', True, ', '.join('DNS: %s' % x for x in sans)).encode()])
         req.set_pubkey(pkey)
-        req.sign(pkey, CertUtil.ca_digest)
+        req.sign(pkey, self.ca_digest)
 
         cert = OpenSSL.crypto.X509()
         cert.set_version(2)
         try:
-            cert.set_serial_number(CertUtil.get_cert_serial_number(commonname))
+            cert.set_serial_number(self.get_cert_serial_number(commonname))
         except OpenSSL.SSL.Error:
             cert.set_serial_number(int(time.time()*1000))
         cert.gmtime_adj_notBefore(-600) #avoid crt time error warning
@@ -258,31 +273,29 @@ class CertUtil(object):
         else:
             sans = [commonname] + [s for s in sans if s != commonname]
         #cert.add_extensions([OpenSSL.crypto.X509Extension(b'subjectAltName', True, ', '.join('DNS: %s' % x for x in sans))])
-        cert.sign(key, CertUtil.ca_digest)
+        cert.sign(key, self.ca_digest)
 
-        certfile = os.path.join(CertUtil.ca_certdir, commonname + '.crt')
+        certfile = os.path.join(self.ca_certdir, commonname + '.crt')
         with open(certfile, 'wb') as fp:
             fp.write(OpenSSL.crypto.dump_certificate(OpenSSL.crypto.FILETYPE_PEM, cert))
             fp.write(OpenSSL.crypto.dump_privatekey(OpenSSL.crypto.FILETYPE_PEM, pkey))
         return certfile
 
-    @staticmethod
-    def get_cert(commonname, sans=()):
+    def get_cert(self, commonname, sans=()):
         if commonname.count('.') >= 2 and [len(x) for x in reversed(commonname.split('.'))] > [2, 4]:
             commonname = '.'+commonname.partition('.')[-1]
-        certfile = os.path.join(CertUtil.ca_certdir, commonname + '.crt')
+        certfile = os.path.join(self.ca_certdir, commonname + '.crt')
         if os.path.exists(certfile):
             return certfile
         elif OpenSSL is None:
-            return CertUtil.ca_keyfile
+            return self.ca_keyfile
         else:
-            with CertUtil.ca_lock:
+            with self.ca_lock:
                 if os.path.exists(certfile):
                     return certfile
-                return CertUtil._get_cert(commonname, sans)
+                return self._get_cert(commonname, sans)
 
-    @staticmethod
-    def import_ca(certfile):
+    def import_ca(self, certfile):
         commonname = os.path.splitext(os.path.basename(certfile))[0]
         if sys.platform.startswith('win'):
             import ctypes
@@ -301,8 +314,8 @@ class CertUtil(object):
                 X509_ASN_ENCODING = 0x00000001
                 class CRYPT_HASH_BLOB(ctypes.Structure):
                     _fields_ = [('cbData', ctypes.c_ulong), ('pbData', ctypes.c_char_p)]
-                assert CertUtil.ca_thumbprint
-                crypt_hash = CRYPT_HASH_BLOB(20, binascii.a2b_hex(CertUtil.ca_thumbprint.replace(':', '')))
+                assert self.ca_thumbprint
+                crypt_hash = CRYPT_HASH_BLOB(20, binascii.a2b_hex(self.ca_thumbprint.replace(':', '')))
                 crypt_handle = crypt32.CertFindCertificateInStore(store_handle, X509_ASN_ENCODING, 0, CERT_FIND_HASH, ctypes.byref(crypt_hash), None)
                 if crypt_handle:
                     crypt32.CertFreeCertificateContext(crypt_handle)
@@ -327,8 +340,7 @@ class CertUtil(object):
                 logging.warning('please install *libnss3-tools* package to import GoAgent root ca')
         return 0
 
-    @staticmethod
-    def remove_ca(name):
+    def remove_ca(self, name):
         import ctypes
         import ctypes.wintypes
         class CERT_CONTEXT(ctypes.Structure):
@@ -348,27 +360,26 @@ class CertUtil(object):
             if hasattr(cert, 'get_subject'):
                 cert = cert.get_subject()
             cert_name = next((v for k, v in cert.get_components() if k == 'CN'), '')
-            if cert_name and name == cert_name:
+            if cert_name and name.lower() == cert_name.split()[0].lower():
                 crypt32.CertDeleteCertificateFromStore(crypt32.CertDuplicateCertificateContext(pCertCtx))
             pCertCtx = crypt32.CertEnumCertificatesInStore(store_handle, pCertCtx)
         return 0
 
-    @staticmethod
-    def check_ca():
+    def check_ca(self):
         #Check CA exists
-        capath = os.path.join(os.path.dirname(os.path.abspath(__file__)), CertUtil.ca_keyfile)
-        certdir = os.path.join(os.path.dirname(os.path.abspath(__file__)), CertUtil.ca_certdir)
+        capath = os.path.join(os.path.dirname(os.path.abspath(__file__)), self.ca_keyfile)
+        certdir = os.path.join(os.path.dirname(os.path.abspath(__file__)), self.ca_certdir)
         if not os.path.exists(capath):
             if os.path.exists(certdir):
                 any(os.remove(x) for x in glob.glob(certdir+'/*.crt')+glob.glob(certdir+'/.*.crt'))
             if os.name == 'nt':
                 try:
-                    CertUtil.remove_ca('%s CA' % CertUtil.ca_vendor)
+                    self.remove_ca(self.ca_vendor)
                 except Exception as e:
-                    logging.warning('CertUtil.remove_ca failed: %r', e)
-            CertUtil.dump_ca()
+                    logging.warning('self.remove_ca failed: %r', e)
+            self.dump_ca()
         with open(capath, 'rb') as fp:
-            CertUtil.ca_thumbprint = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM, fp.read()).digest('sha1')
+            self.ca_thumbprint = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM, fp.read()).digest(self.ca_digest)
         #Check Certs
         certfiles = glob.glob(certdir+'/*.crt')+glob.glob(certdir+'/.*.crt')
         if certfiles:
@@ -376,14 +387,16 @@ class CertUtil(object):
             commonname = os.path.splitext(os.path.basename(filename))[0]
             with open(filename, 'rb') as fp:
                 serial_number = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM, fp.read()).get_serial_number()
-            if serial_number != CertUtil.get_cert_serial_number(commonname):
+            if serial_number != self.get_cert_serial_number(commonname):
                 any(os.remove(x) for x in certfiles)
         #Check CA imported
-        if CertUtil.import_ca(capath) != 0:
+        if self.import_ca(capath) != 0:
             logging.warning('install root certificate failed, Please run as administrator/root/sudo')
         #Check Certs Dir
         if not os.path.exists(certdir):
             os.makedirs(certdir)
+
+CertUtil = CertUtility('GoAgent', 'CA.crt', 'certs')
 
 
 class SSLConnection(object):
@@ -861,37 +874,54 @@ def get_process_list():
 
 def forward_socket(local, remote, timeout, bufsize):
     """forward socket"""
-    def __io_copy(dest, source, timeout):
-        try:
-            dest.settimeout(timeout)
-            source.settimeout(timeout)
-            while 1:
-                data = source.recv(bufsize)
+    try:
+        tick = 1
+        timecount = timeout
+        while 1:
+            timecount -= tick
+            if timecount <= 0:
+                break
+            (ins, _, errors) = select.select([local, remote], [], [local, remote], tick)
+            if errors:
+                break
+            for sock in ins:
+                data = sock.recv(bufsize)
                 if not data:
                     break
-                dest.sendall(data)
-        except socket.timeout:
-            pass
-        except (socket.error, ssl.SSLError, OpenSSL.SSL.Error) as e:
-            if e.args[0] not in (errno.ECONNABORTED, errno.ECONNRESET, errno.ENOTCONN, errno.EPIPE):
-                raise
-            if e.args[0] in (errno.EBADF,):
-                return
-        finally:
-            for sock in (dest, source):
-                try:
-                    sock.close()
-                except StandardError:
-                    pass
-    thread.start_new_thread(__io_copy, (remote.dup(), local.dup(), timeout))
-    __io_copy(local, remote, timeout)
+                if sock is remote:
+                    local.sendall(data)
+                    timecount = timeout
+                else:
+                    remote.sendall(data)
+                    timecount = timeout
+    except socket.timeout:
+        pass
+    except (socket.error, ssl.SSLError, OpenSSL.SSL.Error) as e:
+        if e.args[0] not in (errno.ECONNABORTED, errno.ECONNRESET, errno.ENOTCONN, errno.EPIPE):
+            raise
+        if e.args[0] in (errno.EBADF,):
+            return
+    finally:
+        for sock in (remote, local):
+            try:
+                sock.close()
+            except StandardError:
+                pass
 
 
 class LocalProxyServer(SocketServer.ThreadingTCPServer):
     """Local Proxy Server"""
-    request_queue_size = 1024
+    request_queue_size = 4096
     allow_reuse_address = True
     daemon_threads = True
+
+    def __init__(self, listener, RequestHandlerClass, bind_and_activate=True):
+        """Constructor.  May be extended, do not override."""
+        if hasattr(listener, 'getsockname'):
+            SocketServer.BaseServer.__init__(self, listener.getsockname(), RequestHandlerClass)
+            self.socket = listener
+        else:
+            SocketServer.ThreadingTCPServer.__init__(self, listener, RequestHandlerClass, bind_and_activate)
 
     def close_request(self, request):
         try:
@@ -932,6 +962,8 @@ class MockFetchPlugin(BaseFetchPlugin):
         """mock response"""
         logging.info('%s "MOCK %s %s %s" %d %d', handler.address_string(), handler.command, handler.path, handler.protocol_version, status, len(body))
         headers = dict((k.title(), v) for k, v in headers.items())
+        if isinstance(body, unicode):
+            body = body.encode('utf8')
         if 'Transfer-Encoding' in headers:
             del headers['Transfer-Encoding']
         if 'Content-Length' not in headers:
@@ -1068,16 +1100,19 @@ class DirectFetchPlugin(BaseFetchPlugin):
                 headers['Range'] = 'bytes=%d-' % rescue_bytes
             response = handler.net2.create_http_request(method, url, headers, body, timeout=handler.net2.connect_timeout, read_timeout=self.read_timeout, **kwargs)
             logging.info('%s "DIRECT %s %s %s" %s %s', handler.address_string(), handler.command, url, handler.protocol_version, response.status, response.getheader('Content-Length', '-'))
-            response_headers = dict((k.title(), v) for k, v in response.getheaders())
+            need_chunked = bool(response.getheader('Transfer-Encoding'))
             if not rescue_bytes:
                 handler.send_response(response.status)
                 for key, value in response.getheaders():
-                    handler.send_header(key, value)
+                    if (key.title(), value.lower()) == ('Connection', 'close'):
+                        handler.send_header('Transfer-Encoding', 'chunked')
+                        need_chunked = True
+                    else:
+                        handler.send_header(key, value)
                 handler.end_headers()
             if handler.command == 'HEAD' or response.status in (204, 304):
                 response.close()
                 return
-            need_chunked = 'Transfer-Encoding' in response_headers
             bufsize = 8192
             written = rescue_bytes
             while True:
@@ -1117,22 +1152,11 @@ class DirectFetchPlugin(BaseFetchPlugin):
         port = handler.port
         local = handler.connection
         remote = None
-        handler.send_response(200)
-        handler.end_headers()
+        handler.connection.send('HTTP/1.1 200 OK\r\n\r\n')
         handler.close_connection = 1
-        data = local.recv(1024)
-        if not data:
-            local.close()
-            return
-        data_is_clienthello = is_clienthello(data)
-        if data_is_clienthello:
-            kwargs['client_hello'] = data
         for i in xrange(self.max_retry):
             try:
                 remote = handler.net2.create_tcp_connection(host, port, handler.net2.connect_timeout, **kwargs)
-                if not data_is_clienthello and remote and not isinstance(remote, Exception):
-                    remote.sendall(data)
-                break
             except StandardError as e:
                 logging.exception('%s "FORWARD %s %s:%d %s" %r', handler.address_string(), handler.command, host, port, handler.protocol_version, e)
                 if hasattr(remote, 'close'):
@@ -1143,10 +1167,6 @@ class DirectFetchPlugin(BaseFetchPlugin):
         if hasattr(remote, 'fileno'):
             # reset timeout default to avoid long http upload failure, but it will delay timeout retry :(
             remote.settimeout(None)
-        data = data_is_clienthello and getattr(remote, 'data', None)
-        if data:
-            del remote.data
-            local.sendall(data)
         forward_socket(local, remote, 60, bufsize=256*1024)
 
 
@@ -1828,6 +1848,13 @@ class AdvancedNet2(Net2):
                                 response.begin()
                         else:
                             response.begin()
+                        if hostname.endswith('.appspot.com') and 'Google' not in response.getheader('server', ''):
+                            self.ssl_connection_good_ipaddrs.pop(ipaddr, None)
+                            self.ssl_connection_bad_ipaddrs.pop(ipaddr, None)
+                            self.ssl_connection_unknown_ipaddrs.pop(ipaddr, None)
+                            self.iplist_alias.get(self.getaliasbyname('%s:%d' % (hostname, port))).remove(ipaddr[0])
+                            logging.warning('%r is not a vaild google ip, remove it', ipaddr)
+                            raise socket.timeout('timed out')
                     except gevent.Timeout:
                         ssl_sock.close()
                         raise socket.timeout('timed out')
@@ -1842,7 +1869,7 @@ class AdvancedNet2(Net2):
                 self.ssl_connection_time[ipaddr] = self.connect_timeout + random.random()
                 # add to bad ipaddrs dict
                 if ipaddr[0] in self.fixed_iplist:
-                    logging.warn('bad IP: %s (%r)', ipaddr, e)
+                    logging.debug('bad IP: %s (%r)', ipaddr, e)
                 if ipaddr not in self.ssl_connection_bad_ipaddrs:
                     self.ssl_connection_bad_ipaddrs[ipaddr] = time.time()
                 # remove from good/unknown ipaddrs dict
@@ -1918,6 +1945,13 @@ class AdvancedNet2(Net2):
                                 response.begin()
                         else:
                             response.begin()
+                        if hostname.endswith('.appspot.com') and 'Google' not in response.getheader('server', ''):
+                            self.ssl_connection_good_ipaddrs.pop(ipaddr, None)
+                            self.ssl_connection_bad_ipaddrs.pop(ipaddr, None)
+                            self.ssl_connection_unknown_ipaddrs.pop(ipaddr, None)
+                            self.iplist_alias.get(self.getaliasbyname('%s:%d' % (hostname, port))).remove(ipaddr[0])
+                            logging.warning('%r is not a vaild google ip, remove it', ipaddr)
+                            raise socket.timeout('timed out')
                     except gevent.Timeout:
                         ssl_sock.close()
                         raise socket.timeout('timed out')
@@ -1932,7 +1966,7 @@ class AdvancedNet2(Net2):
                 self.ssl_connection_time[ipaddr] = self.connect_timeout + random.random()
                 # add to bad ipaddrs dict
                 if ipaddr[0] in self.fixed_iplist:
-                    logging.warn('bad IP: %s (%r)', ipaddr, e)
+                    logging.debug('bad IP: %s (%r)', ipaddr, e)
                 if ipaddr not in self.ssl_connection_bad_ipaddrs:
                     self.ssl_connection_bad_ipaddrs[ipaddr] = time.time()
                 # remove from good/unknown ipaddrs dict
