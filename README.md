@@ -28,7 +28,7 @@ http://yangyangwithgnu.github.io/
 
 如果，你有意愿自己配置一套 goagent，又或者，对其他各类代理工具感兴趣，可以参考《美丽新世界：linux 下的惬意生活》中“3.2 搭梯翻墙”章节（https://github.com/yangyangwithgnu/the_new_world_linux#3.2 ）。
 
-另外，每次启动 goagent 后，你需要耐心等待一两分钟，才可正常使用 goagent 的代理服务。你知道，作为门槛最低的翻墙工具，goagent 普及度越来越高，这肯定会引来 GFW 的重点关注。前面提过，goagent 正常使用得有个前提，运行 goagent 的客户端必须能访问 GAE，那么，GFW 要让 goagent 失效最简单的办法就是封锁所有连接 GAE 的请求。道高一尺、魔高一丈，goagent 相应改变策略，不再直连 GAE，而是先连入 GGC，通过 GGC 再接入 GAE，所以，goagent 查找可用 GGC 是能否成功翻墙的关键。简单科普下 GGC，google 是一家面向全球用户的公司，数据中心在美国，要想让各国用户高效享受到 google 提供的各项服务，最直接的办法是在各地建立当地的数据（或者服务）镜像，这就是所谓的 Google Global Cache，即 GGC，在逻辑上，类似 CDN。每次启动 goagent 后，你应该通过 goagent 先访问某个网页（很可能浏览器上无反馈，不影响），以便让其尽早搜寻可用 GGC 的 IP，一旦输出信息中的 good_ipaddrs 大于 0 时，则说明 goagent 成功搜寻到可用 IP。这就是你得等待片刻才能成功翻墙的原因。
+另外，每次启动 goagent 后，你需要耐心等待一两分钟，才可正常使用 goagent 的代理服务。你知道，作为门槛最低的翻墙工具，goagent 普及度越来越高，这肯定会引来 GFW 的重点关注。前面提过，goagent 正常使用得有个前提，运行 goagent 的客户端必须能访问 GAE，那么，GFW 要让 goagent 失效最简单的办法就是封锁所有连接 GAE 的请求。道高一尺、魔高一丈，goagent 相应改变策略，不再直连 GAE，而是先连入 GGC，通过 GGC 再接入 GAE，所以，goagent 查找可用 GGC 是能否成功翻墙的关键。简单科普下 GGC，google 是一家面向全球用户的公司，数据中心在美国，要想让全球用户高效享受到 google 提供的各项服务，最直接的办法是在各地建立当地的数据（或者服务）镜像，这就是所谓的 Google Global Cache，即 GGC，在逻辑上，类似 CDN。每次启动 goagent 后，你应该通过 goagent 先访问某个网页（很可能浏览器上无反馈，不影响），以便让其尽早搜寻可用 GGC 的 IP，一旦输出信息中的 good_ipaddrs 大于 0 时，则说明 goagent 成功搜寻到可用 IP。这就是你得等待片刻才能成功翻墙的原因。
 
 
 ##注意
